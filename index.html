@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Agenda Docenti">
+<meta name="theme-color" content="#1a3a5c">
+<title>Agenda Docenti</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow-x:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f0eb;color:#1a1a18;font-size:16px;padding-bottom:80px;}
+
+.topbar{position:sticky;top:0;z-index:99;background:#1a3a5c;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;}
+.topbar-title{font-size:18px;font-weight:700;color:#fff;}
+.topbar-sub{font-size:12px;color:rgba(255,255,255,.7);margin-top:1px;}
+.btn-new{background:#fff;color:#1a3a5c;border:none;border-radius:8px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px;}
+
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:99;background:#fff;border-top:1px solid #ddd;display:flex;height:62px;}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:none;background:none;color:#aaa;font-size:11px;font-weight:500;cursor:pointer;padding:0;min-height:62px;}
+.nav-btn.active{color:#1a3a5c;}
+.nav-btn svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+
+.page{display:none;padding:14px 16px;}
+.page.show{display:block;}
+
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;}
+.stat{background:#fff;border-radius:10px;border:1px solid #e0e0d8;padding:12px 6px;text-align:center;}
+.stat-n{font-size:28px;font-weight:700;color:#1a3a5c;line-height:1;}
+.stat-l{font-size:11px;color:#888;margin-top:4px;}
+
+.filters{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;}
+.filters::-webkit-scrollbar{display:none;}
+.chip{flex-shrink:0;font-size:13px;font-weight:600;padding:8px 16px;border-radius:100px;border:1px solid #ddd;background:#fff;color:#666;cursor:pointer;min-height:36px;}
+.chip.on{background:#1a3a5c;color:#fff;border-color:#1a3a5c;}
+
+.card{background:#fff;border-radius:12px;border:1px solid #e0e0d8;padding:14px 16px;margin-bottom:12px;}
+.card-title{font-size:15px;font-weight:700;margin-bottom:14px;color:#1a1a18;}
+
+.appt{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid #eee;}
+.appt:last-child{border-bottom:none;padding-bottom:2px;}
+.appt:first-child{padding-top:2px;}
+.dbox{min-width:48px;background:#e8eef5;border-radius:8px;text-align:center;padding:7px 4px;flex-shrink:0;}
+.dbox.today{background:#1a3a5c;}
+.dday{font-size:22px;font-weight:700;color:#0d2a44;line-height:1;}
+.dbox.today .dday{color:#fff;}
+.dmon{font-size:10px;color:#0d2a44;text-transform:uppercase;font-weight:600;letter-spacing:.04em;}
+.dbox.today .dmon{color:rgba(255,255,255,.8);}
+.dot{width:7px;height:7px;border-radius:50%;margin:5px auto 0;}
+.dot.g{background:#3a9a3a;}.dot.a{background:#e0a020;}.dot.gr{background:#bbb;}
+.abody{flex:1;min-width:0;}
+.aname{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.aschool{font-size:13px;color:#555;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.atime{font-size:12px;color:#999;margin-top:3px;}
+.atags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;}
+.tmat{background:#eaf3ea;color:#2d6a2d;}
+.top{background:#e8eef5;color:#0d2a44;}
+.anote{font-size:12px;color:#888;margin-top:6px;font-style:italic;}
+.aact{display:flex;flex-direction:column;gap:7px;flex-shrink:0;}
+.ibtn{width:40px;height:40px;border-radius:8px;border:1px solid #ddd;background:#f5f5f0;display:flex;align-items:center;justify-content:center;cursor:pointer;text-decoration:none;-webkit-tap-highlight-color:transparent;}
+.ibtn svg{width:18px;height:18px;stroke:#666;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+.ibtn.del{background:#fdeaea;border-color:#f0c0c0;}
+.ibtn.del svg{stroke:#a00;}
+.ibtn.cal{background:#e8eef5;border-color:#c0d0e0;}
+.ibtn.cal svg{stroke:#1a3a5c;}
+
+.empty{text-align:center;padding:48px 16px;color:#aaa;}
+.empty svg{width:40px;height:40px;stroke:#ccc;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;display:block;margin:0 auto 12px;}
+.empty-t{font-size:16px;font-weight:700;color:#999;}
+.empty-s{font-size:13px;margin-top:5px;}
+
+.fg{margin-bottom:14px;}
+.fr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.lbl{font-size:12px;font-weight:700;color:#555;display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;}
+input[type=text],input[type=date],input[type=time],select,textarea{width:100%;border:1.5px solid #ddd;border-radius:8px;padding:12px;font-size:16px;background:#f8f8f4;color:#1a1a18;-webkit-appearance:none;appearance:none;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:#1a3a5c;background:#fff;}
+textarea{height:80px;resize:vertical;}
+
+.opgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.opcard{border:2px solid #e0e0d8;border-radius:8px;padding:10px 11px;cursor:pointer;background:#f8f8f4;-webkit-tap-highlight-color:transparent;}
+.opcard.on{border-color:#1a3a5c;background:#e8eef5;}
+.op-t{font-size:12px;font-weight:700;color:#1a1a18;line-height:1.3;}
+.op-e{font-size:11px;color:#888;margin-top:2px;}
+.op-m{font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px;background:#eaf3ea;color:#2d6a2d;display:inline-block;margin-top:5px;}
+
+.gcal-info{display:flex;align-items:center;gap:10px;background:#e8eef5;border-radius:8px;padding:12px;font-size:13px;color:#0d2a44;margin-bottom:14px;font-weight:500;}
+.gcal-info svg{width:20px;height:20px;flex-shrink:0;stroke:#1a3a5c;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+
+.btnp{display:block;width:100%;background:#1a3a5c;color:#fff;border:none;border-radius:8px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;text-align:center;min-height:50px;-webkit-tap-highlight-color:transparent;}
+.btns{display:block;width:100%;background:#f5f5f0;color:#444;border:1px solid #ddd;border-radius:8px;padding:14px;font-size:16px;font-weight:500;cursor:pointer;margin-top:10px;text-align:center;min-height:50px;-webkit-tap-highlight-color:transparent;}
+
+.oprow{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #eee;}
+.oprow:last-child{border-bottom:none;}
+.oprow-b{flex:1;min-width:0;}
+.oprow-t{font-size:14px;font-weight:700;}
+.oprow-m{font-size:12px;color:#888;margin-top:3px;}
+
+.toast{position:fixed;bottom:74px;left:16px;right:16px;background:#1a3a5c;color:#fff;border-radius:8px;padding:13px 16px;font-size:14px;font-weight:600;text-align:center;z-index:999;opacity:0;pointer-events:none;transition:opacity .25s;}
+.toast.show{opacity:1;}
+
+.no-opere{color:#aaa;font-size:14px;text-align:center;padding:20px 0;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="topbar-title">Agenda Docenti</div>
+    <div class="topbar-sub">Catania</div>
+  </div>
+  <button class="btn-new" onclick="goTab('nuovo')">+ Nuovo</button>
+</div>
+
+<!-- AGENDA -->
+<div id="pg-agenda" class="page show">
+  <div class="stats">
+    <div class="stat"><div class="stat-n" id="c-oggi">0</div><div class="stat-l">Oggi</div></div>
+    <div class="stat"><div class="stat-n" id="c-sett">0</div><div class="stat-l">Settimana</div></div>
+    <div class="stat"><div class="stat-n" id="c-tot">0</div><div class="stat-l">Totale</div></div>
+  </div>
+  <div class="filters">
+    <button class="chip on" onclick="setFilt('tutti',this)">Tutti</button>
+    <button class="chip" onclick="setFilt('oggi',this)">Oggi</button>
+    <button class="chip" onclick="setFilt('sett',this)">Settimana</button>
+    <button class="chip" onclick="setFilt('futuri',this)">Futuri</button>
+    <button class="chip" onclick="setFilt('passati',this)">Passati</button>
+  </div>
+  <div class="card" id="lista" style="padding:0 16px;"></div>
+</div>
+
+<!-- NUOVO -->
+<div id="pg-nuovo" class="page">
+  <div class="card">
+    <div class="card-title">Dettagli visita</div>
+    <div class="fg"><label class="lbl">Nome docente</label><input type="text" id="f-doc" placeholder="Es. Prof.ssa Russo Maria" autocomplete="off" autocorrect="off"></div>
+    <div class="fr">
+      <div><label class="lbl">Materia</label>
+        <select id="f-mat">
+          <option value="">— materia —</option>
+          <option>Italiano</option><option>Storia</option><option>Matematica</option>
+          <option>Scienze</option><option>Inglese</option><option>Fisica</option>
+          <option>Filosofia</option><option>Latino</option><option>Greco</option>
+          <option>Arte</option><option>Musica</option><option>Diritto</option><option>Economia</option>
+        </select>
+      </div>
+      <div><label class="lbl">Grado</label>
+        <select id="f-grado"><option value="">—</option><option>SS1</option><option>SS2</option></select>
+      </div>
+    </div>
+    <div class="fg"><label class="lbl">Istituto</label><input type="text" id="f-ist" placeholder="Es. I.C. G. Rodari" autocomplete="off" autocorrect="off"></div>
+    <div class="fg"><label class="lbl">Comune</label><input type="text" id="f-com" placeholder="Es. Gravina di Catania" autocomplete="off" autocorrect="off"></div>
+    <div class="fr">
+      <div><label class="lbl">Data</label><input type="date" id="f-data"></div>
+      <div><label class="lbl">Ora</label><input type="time" id="f-ora" value="09:00"></div>
+    </div>
+    <div class="fg"><label class="lbl">Note</label><textarea id="f-note" placeholder="Es. Proporre adozione classe 2ª…"></textarea></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Opere da presentare</div>
+    <div class="opgrid" id="op-picker"></div>
+    <div id="no-opere-msg" class="no-opere" style="display:none;">Nessuna opera nel portfolio. Aggiungile dalla sezione Opere.</div>
+  </div>
+
+  <div class="gcal-info">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Dopo il salvataggio si aprirà Google Calendar con l'appuntamento precompilato.
+  </div>
+
+  <button class="btnp" onclick="salva()">Salva appuntamento</button>
+  <button class="btns" onclick="goTab('agenda')">Annulla</button>
+</div>
+
+<!-- OPERE -->
+<div id="pg-opere" class="page">
+  <div class="card">
+    <div class="card-title">Portfolio opere</div>
+    <div id="op-list"></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Aggiungi opera</div>
+    <div class="fg"><label class="lbl">Titolo</label><input type="text" id="n-tit" placeholder="Es. Storia moderna vol.1" autocomplete="off" autocorrect="off"></div>
+    <div class="fr">
+      <div><label class="lbl">Editore</label><input type="text" id="n-ed" placeholder="Es. Laterza" autocomplete="off"></div>
+      <div><label class="lbl">Materia</label><input type="text" id="n-mat" placeholder="Es. Storia" autocomplete="off"></div>
+    </div>
+    <div class="fg"><label class="lbl">Grado</label>
+      <select id="n-grado"><option>SS1</option><option>SS2</option><option>Entrambi</option></select>
+    </div>
+    <button class="btnp" onclick="addOpera()">Aggiungi al portfolio</button>
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nb-agenda" onclick="goTab('agenda')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+    Agenda
+  </button>
+  <button class="nav-btn" id="nb-nuovo" onclick="goTab('nuovo')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Nuovo
+  </button>
+  <button class="nav-btn" id="nb-opere" onclick="goTab('opere')">
+    <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    Opere
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var MO=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+var opere=[],appts=[],selOp=[],nextId=1,filt='tutti';
+
+function lsGet(k,def){try{var v=localStorage.getItem(k);return v?JSON.parse(v):def;}catch(e){return def;}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+function persist(){lsSet('op4',opere);lsSet('ap2',appts);}
+
+function init(){
+  opere=lsGet('op4',[]);
+  appts=lsGet('ap2',[]);
+  selOp=[];
+  nextId=opere.length?Math.max.apply(null,opere.map(function(o){return o.id;}))+1:1;
+  filt='tutti';
+  renderAgenda();
+}
+
+function goTab(t){
+  ['agenda','nuovo','opere'].forEach(function(s){
+    document.getElementById('pg-'+s).classList.toggle('show',s===t);
+    document.getElementById('nb-'+s).classList.toggle('active',s===t);
+  });
+  window.scrollTo(0,0);
+  if(t==='agenda') renderAgenda();
+  if(t==='nuovo'){resetForm();renderPicker();}
+  if(t==='opere') renderOpList();
+}
+
+function t0(){var d=new Date();d.setHours(0,0,0,0);return d;}
+
+function setFilt(f,el){
+  filt=f;
+  document.querySelectorAll('.chip').forEach(function(c){c.classList.remove('on');});
+  el.classList.add('on');
+  renderAgenda();
+}
+
+function renderAgenda(){
+  var now=t0(),t7=new Date(now);t7.setDate(now.getDate()+7);
+  var og=0,se=0;
+  appts.forEach(function(a){
+    var d=new Date(a.data);d.setHours(0,0,0,0);
+    if(d.getTime()===now.getTime())og++;
+    if(d>=now&&d<t7)se++;
+  });
+  document.getElementById('c-oggi').textContent=og;
+  document.getElementById('c-sett').textContent=se;
+  document.getElementById('c-tot').textContent=appts.length;
+
+  var list=appts.slice();
+  if(filt==='oggi') list=list.filter(function(a){var d=new Date(a.data);d.setHours(0,0,0,0);return d.getTime()===now.getTime();});
+  else if(filt==='sett') list=list.filter(function(a){var d=new Date(a.data);d.setHours(0,0,0,0);return d>=now&&d<t7;});
+  else if(filt==='futuri') list=list.filter(function(a){var d=new Date(a.data);d.setHours(0,0,0,0);return d>now;});
+  else if(filt==='passati') list=list.filter(function(a){var d=new Date(a.data);d.setHours(0,0,0,0);return d<now;});
+  list.sort(function(a,b){return new Date(a.data)-new Date(b.data);});
+
+  var el=document.getElementById('lista');
+  if(!list.length){
+    el.innerHTML='<div class="empty"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><div class="empty-t">Nessun appuntamento</div><div class="empty-s">Usa + Nuovo per aggiungerne uno.</div></div>';
+    return;
+  }
+  el.innerHTML=list.map(function(a){
+    var ri=appts.indexOf(a);
+    var d=new Date(a.data),dc=new Date(a.data);dc.setHours(0,0,0,0);
+    var isT=dc.getTime()===now.getTime(),isPast=dc<now;
+    var dc2=isT?'g':(isPast?'gr':'a');
+    var ot=(a.opere||[]).map(function(o){return '<span class="tag top">'+e(o)+'</span>';}).join('');
+    var mt=a.materia?'<span class="tag tmat">'+e(a.materia)+'</span>':'';
+    return '<div class="appt">'
+      +'<div class="dbox'+(isT?' today':'')+'"><div class="dday">'+d.getDate()+'</div>'
+      +'<div class="dmon">'+MO[d.getMonth()]+'</div><div class="dot '+dc2+'"></div></div>'
+      +'<div class="abody"><div class="aname">'+e(a.docente||'Docente')+'</div>'
+      +'<div class="aschool">'+e(a.istituto||'')+(a.comune?' · '+e(a.comune):'')+'</div>'
+      +'<div class="atime">ore '+(a.ora||'—')+(a.grado?' · '+a.grado:'')+'</div>'
+      +'<div class="atags">'+mt+ot+'</div>'
+      +(a.note?'<div class="anote">'+e(a.note)+'</div>':'')
+      +'</div>'
+      +'<div class="aact">'
+      +'<a href="'+gcalUrl(a)+'" target="_blank" class="ibtn cal" style="display:flex;align-items:center;justify-content:center;">'
+      +'<svg viewBox="0 0 24 24" width="18" height="18" stroke="#1a3a5c" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></a>'
+      +'<button class="ibtn del" onclick="delA('+ri+')" style="display:flex;align-items:center;justify-content:center;">'
+      +'<svg viewBox="0 0 24 24" width="18" height="18" stroke="#a00" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function delA(i){
+  if(confirm('Eliminare questo appuntamento?')){appts.splice(i,1);persist();renderAgenda();}
+}
+
+function gcalUrl(a){
+  var d=(a.data||'').replace(/-/g,'');
+  var p=(a.ora||'09:00').split(':'),hh=p[0],mm=p[1]||'00';
+  var eh=String(Number(hh)+1);if(eh.length<2)eh='0'+eh;
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    +'&text='+encodeURIComponent('Visita: '+(a.docente||'')+(a.istituto?' — '+a.istituto:''))
+    +'&dates='+d+'T'+hh+mm+'00/'+d+'T'+eh+mm+'00'
+    +'&details='+encodeURIComponent('Materia: '+(a.materia||'')+'\nGrado: '+(a.grado||'')+'\nComune: '+(a.comune||'')+'\nOpere: '+((a.opere||[]).join(', '))+'\nNote: '+(a.note||''))
+    +'&location='+encodeURIComponent(a.comune||'Catania, CT');
+}
+
+function renderPicker(){
+  var el=document.getElementById('op-picker');
+  var msg=document.getElementById('no-opere-msg');
+  if(!opere.length){el.innerHTML='';msg.style.display='block';return;}
+  msg.style.display='none';
+  el.innerHTML=opere.map(function(o){
+    return '<div class="opcard'+(selOp.indexOf(o.id)>-1?' on':'')+'" onclick="togOp('+o.id+',this)">'
+      +'<div class="op-t">'+e(o.titolo)+'</div>'
+      +'<div class="op-e">'+e(o.editore)+'</div>'
+      +'<span class="op-m">'+e(o.materia)+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+function togOp(id,el){
+  var i=selOp.indexOf(id);
+  if(i>-1){selOp.splice(i,1);el.classList.remove('on');}
+  else{selOp.push(id);el.classList.add('on');}
+}
+
+function salva(){
+  var doc=document.getElementById('f-doc').value.trim();
+  var dat=document.getElementById('f-data').value;
+  if(!doc){toast('Inserisci il nome del docente.');return;}
+  if(!dat){toast('Inserisci la data.');return;}
+  var a={
+    docente:doc,data:dat,
+    materia:document.getElementById('f-mat').value,
+    grado:document.getElementById('f-grado').value,
+    istituto:document.getElementById('f-ist').value.trim(),
+    comune:document.getElementById('f-com').value.trim(),
+    ora:document.getElementById('f-ora').value,
+    note:document.getElementById('f-note').value.trim(),
+    opere:selOp.map(function(id){var o=opere.find(function(x){return x.id===id;});return o?o.titolo:'';}).filter(Boolean)
+  };
+  appts.push(a);persist();
+  var url=gcalUrl(a);
+  goTab('agenda');
+  toast('Appuntamento salvato!');
+  setTimeout(function(){window.open(url,'_blank');},400);
+}
+
+function resetForm(){
+  ['f-doc','f-ist','f-com','f-note'].forEach(function(id){document.getElementById(id).value='';});
+  document.getElementById('f-mat').value='';
+  document.getElementById('f-grado').value='';
+  document.getElementById('f-ora').value='09:00';
+  document.getElementById('f-data').value=new Date().toISOString().split('T')[0];
+  selOp=[];
+}
+
+function renderOpList(){
+  var el=document.getElementById('op-list');
+  if(!opere.length){el.innerHTML='<div style="color:#aaa;font-size:14px;text-align:center;padding:20px 0;">Nessuna opera nel portfolio.<br>Aggiungine una qui sotto.</div>';return;}
+  el.innerHTML=opere.map(function(o){
+    return '<div class="oprow">'
+      +'<div class="oprow-b"><div class="oprow-t">'+e(o.titolo)+'</div>'
+      +'<div class="oprow-m">'+e(o.editore)+' · '+e(o.materia)+' · '+o.grado+'</div></div>'
+      +'<button class="ibtn del" onclick="delOp('+o.id+')" style="display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+      +'<svg viewBox="0 0 24 24" width="18" height="18" stroke="#a00" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>'
+      +'</button></div>';
+  }).join('');
+}
+
+function addOpera(){
+  var t=document.getElementById('n-tit').value.trim();
+  if(!t){toast('Inserisci il titolo.');return;}
+  opere.push({id:nextId++,titolo:t,editore:document.getElementById('n-ed').value.trim(),materia:document.getElementById('n-mat').value.trim(),grado:document.getElementById('n-grado').value});
+  persist();renderOpList();
+  ['n-tit','n-ed','n-mat'].forEach(function(id){document.getElementById(id).value='';});
+  toast('Opera aggiunta al portfolio');
+}
+
+function delOp(id){
+  if(confirm('Rimuovere questa opera?')){opere=opere.filter(function(o){return o.id!==id;});persist();renderOpList();}
+}
+
+function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function toast(msg){
+  var t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(function(){t.classList.remove('show');},2500);
+}
+
+init();
+</script>
+</body>
+</html>
